@@ -108,23 +108,7 @@ def check_count(cardNums):
             countPair += 1
     
     return maxCount, countPair
-
-def compare_tie_breaker(tieBreakerDict1, tieBeeakerDict2, values):
-    # values need to from large to small
-    for val in values:
-        if val not in tieBreakerDict1 and val not in tieBeeakerDict2:
-            continue
-        elif val in tieBreakerDict1 and val not in tieBeeakerDict2:
-            return "one"
-        elif val not in tieBreakerDict1 and val in tieBeeakerDict2:
-            return "two"
-            
-        if tieBreakerDict1[val] > tieBeeakerDict2[val]:
-            return "one"
-        elif tieBreakerDict1[val] < tieBeeakerDict2[val]:
-            return "two"
-        else:
-            return "tie"
+    
     
 def compare_comb(comb1, comb2):
     
@@ -206,34 +190,10 @@ def compare_comb(comb1, comb2):
     maxCountOne = max(countOneDict.values())
     maxCountTwo = max(countTwoDict.values())
     
-    tieBreakerDictOne = {}
-    tieBreakerDictTwo = {}
-    
-    for key in countOneDict:
-        val = countOneDict[key]
-        if val in tieBreakerDictOne:
-            tieBreakerDictOne[val].append(key)
-        else:
-            tieBreakerDictOne[val] = [key]
-    for key in tieBreakerDictOne:
-        tieBreakerDictOne[key].sort()
-        tieBreakerDictOne[key] = tieBreakerDictOne[key][::-1]
-        tieBreakerDictOne[key] = tuple(tieBreakerDictOne[key])
-    
-    for key in countTwoDict:
-        val = countTwoDict[key]
-        if val in tieBreakerDictTwo:
-            tieBreakerDictTwo[val].append(key)
-        else:
-            tieBreakerDictTwo[val] = [key]
-    for key in tieBreakerDictTwo:
-        tieBreakerDictTwo[key].sort()
-        tieBreakerDictTwo[key] = tieBreakerDictTwo[key][::-1]
-        tieBreakerDictTwo[key] = tuple(tieBreakerDictTwo[key])
-        
-    
     pairCountOne = list(countOneDict.values()).count(2)
     pairCountTwo = list(countTwoDict.values()).count(2)
+    
+    # single_card_order_one = 
             
     if 4 in countOneDict.values():
         one = True
@@ -242,152 +202,58 @@ def compare_comb(comb1, comb2):
         two = True
         
     if one and two:
-        return compare_tie_breaker(tieBreakerDictOne, tieBreakerDictTwo, [4, 1])
+        if cardNumsOneSorted[0] > cardNumsTwoSorted[0]:
+            return "one"
+        elif (cardNumsOneSorted[0] < cardNumsTwoSorted[0]):
+            return "two"
+        else:
+            return "tie"
+    elif one:
+        return "one"
+    elif two:
+        return "two"
         
-    elif one:
-        return "one"
-    elif two:
-        return "two"
     
-    # Check for full house
-    if 3 in countOneDict.values() and 2 in countOneDict.values():
-        one = True
-    if 3 in countTwoDict.values() and 2 in countTwoDict.values():
-        two = True
-    
-    if one and two:
-        return compare_tie_breaker(tieBreakerDict1=tieBreakerDictOne, tieBeeakerDict2=tieBreakerDictTwo, values=[3, 2]);
-    elif one:
-        return "one"
-    elif two:
-        return "two"
-    
-    # Check for flush
-    
-    if is_flush(cardTypes=cardTypeOne):
-        one = True
-    if is_flush(cardTypes=cardTypeTwo):
-        two = True
         
-    if one and two:
-        return compare_tie_breaker(tieBreakerDict1=tieBreakerDictOne, tieBeeakerDict2=tieBreakerDictTwo, values=[3, 2, 1])
-    elif one:
-        return "one"
-    elif two:
-        return "two"
-    
-    # check for straight:
-    if is_straight(cardNumsOneSorted):
-        one = True
-    if is_straight(cardNumsTwoSorted):
-        two = True
         
-    if one and two:
-        return compare_tie_breaker(tieBreakerDict1=tieBreakerDictOne, tieBeeakerDict2=tieBreakerDictTwo, values=[1])
-    elif one:
-        return "one"
-    elif two:
-        return "two"
-    
-    # check for three of kind
-    
-    if 3 in countOneDict.values():
-        one = True
-    
-    if 3 in countTwoDict.values():
-        two = True
-    
-    
-    if one and two:
-        return compare_tie_breaker(tieBreakerDict1=tieBreakerDictOne, tieBeeakerDict2=tieBreakerDictTwo, values=[3, 1])
-    
-    elif one:
-        return "one"
-    elif two:
-        return "two"
-    
-    # Check for two pair
-    if pairCountOne == 2:
-        one = True
-        
-    if pairCountTwo == 2:
-        two = True
-        
-    if one and two:
-        return compare_tie_breaker(tieBreakerDict1=tieBreakerDictOne, tieBeeakerDict2=tieBreakerDictTwo, values=[2, 1])
-    elif one:
-        return "one"
-    elif two:
-        return "two"
-    
-    # Check for pair:
-    if 2 in countOneDict.values():
-        one = True
-    
-    if 2 in countTwoDict.values():
-        two = True
-        
-    if one and two:
-        return compare_tie_breaker(tieBreakerDict1=tieBreakerDictOne, tieBeeakerDict2=tieBreakerDictTwo, values=[2, 1])
-    elif one:
-        return "one"
-    elif two:
-        return "two"
-    
-    # for high card
-    return compare_tie_breaker(tieBreakerDict1=tieBreakerDictOne, tieBeeakerDict2=tieBreakerDictTwo, values=[2, 1])
     
                 
 best_combs = []
 
-def find_best_combs(comb: list, handCards: list):
+def find_best_combs(comb: list, handCards):
     
     # go through all 5 cards which could be chosen from 7 cards, push to best_combs
     comb.extend(handCards)
-    all_combinations = list(combinations(comb, 5))
-    found = True
     
-    for combOne in all_combinations:
-        for combTwo in all_combinations:
-            result = compare_comb(combOne, combTwo)
-            if result == "two":
-                found = False
-                break
-        if found:
-            return combOne
-        found = True
-    
-    
-def find_comb(allCards, handCards = []):
-    retval = []
-    all_combinations = list(combinations(allCards, 5))
+
+
+def find_comb(allCards, handCard = []):
+    count = 0
+    di = {}
+    all_combinations = list(combinations(all_cards, 5))
     for idx, comb in enumerate(all_combinations):
         print(idx)
-        curComb = find_best_combs(list(comb), handCards)
-        retval.append(curComb)
-    return retval
-
-def categorized_comb(allCombs):
-    for comb in allCombs:
-        cardNums = []
-        cardTypes = []
-        
+        cardNum = []
         for card in comb:
-            cardNums.append(card[1])
-            cardTypes.append(card[0])
-            
+            cardNum.append(card[1])
+        cardNum.sort()
+        
+        
+    
+        
+        
+        
+        
+        
 
 if __name__ == "__main__":
     all_cards = calculate_prob([("h", 13), ("s", 13)])
     print(all_cards)
-    retvals = find_comb(allCards=all_cards)
-    
+    find_comb(allCards=all_cards)
     
     # given the comb, find how many of total possible combine is better, hiw many worth, then check average
     # to determine the winning prob
         
-    
-    
     
     
     
