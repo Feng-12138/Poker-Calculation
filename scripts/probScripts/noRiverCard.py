@@ -2,34 +2,7 @@ import math
 
 from itertools import combinations
 
-total_num = math.comb(52, 5)
-
-# simgle pair only:
-single_pair_combinations = math.comb(13, 1) * math.comb(4, 2) * math.comb(12, 3) * math.comb(4, 1) ** 3
-
-print(single_pair_combinations / total_num)
-
-# 2 pair only
-two_pair_comb = math.comb(13, 2) * math.comb(4, 2) * math.comb(11, 1) * 4
-
-print(two_pair_comb / total_num)
-
-# 3 cards same
-three_card_same = math.comb(13, 3) * math.comb(4, 3) * math.comb(10, 2) * math.comb(4, 1) ** 2
-
-# 4 cards same
-four_card_same = math.comb(13, 4) * math.comb(4, 4) * math.comb(9, 1) * math.comb(4, 1)
-
-# flushes
-num_flushes = (13 - 5 + 1) * 4
-
-# royal flushes (10, 11, 12, 13, 1)
-num_royal_flushes = 4
-
-# 5 cards same color
-num_same_color = math.comb(13, 5) * 4 - num_flushes - num_royal_flushes
-
-
+from tqdm import tqdm
 
 # h stands for heart
 # d stands for diamend
@@ -41,8 +14,45 @@ card_types = ["h", "d", "c", "s"]
 
 allCombineCards = []
 
-two_pair_cards_total = []
+royal_flush_combs = []
 
+straight_flush_combs = []
+
+four_of_kind_combs = []
+
+full_house_combs = []
+
+flush_combs = []
+
+straight_combs = []
+
+three_of_combs = []
+
+two_pair_combs = []
+
+pair_combs = []
+
+high_card_combs = []
+
+all_royal_flush_combs = []
+
+all_straight_flush_combs = []
+
+all_four_of_kind_combs = []
+
+all_full_house_combs = []
+
+all_flush_combs = []
+
+all_straight_combs = []
+
+all_three_of_combs = []
+
+all_two_pair_combs = []
+
+all_pair_combs = []
+
+all_high_card_combs = []
 
 
 
@@ -202,9 +212,6 @@ def compare_comb(comb1, comb2):
             countTwoDict[num] += 1
         else:
             countTwoDict[num] = 1
-            
-    maxCountOne = max(countOneDict.values())
-    maxCountTwo = max(countTwoDict.values())
     
     tieBreakerDictOne = {}
     tieBreakerDictTwo = {}
@@ -263,7 +270,6 @@ def compare_comb(comb1, comb2):
         return "two"
     
     # Check for flush
-    
     if is_flush(cardTypes=cardTypeOne):
         one = True
     if is_flush(cardTypes=cardTypeTwo):
@@ -367,20 +373,276 @@ def find_comb(allCards, handCards = []):
         retval.append(curComb)
     return retval
 
+def find_comb_no_handcard(allCards):
+    all_combinations = list(combinations(allCards, 5))
+    return all_combinations
+
 def categorized_comb(allCombs):
-    for comb in allCombs:
+    for comb in tqdm(allCombs):
         cardNums = []
         cardTypes = []
         
         for card in comb:
             cardNums.append(card[1])
             cardTypes.append(card[0])
+        cardNumsSorted = cardNums[:]
+        cardNumsSorted.sort()
+        
+        maxCount, numPairs = check_count(cardNums=cardNums)
+        if (is_royal_flush(cardNumsSorted, cardTypes)):
+            royal_flush_combs.append(cardNumsSorted)
+        elif (is_straight_flush(cardNumsSorted, cardTypes)):
+            straight_flush_combs.append(cardNumsSorted)
+        elif (maxCount == 4):
+            four_of_kind_combs.append(cardNumsSorted)
+        elif (maxCount == 3 and numPairs == 2):
+            full_house_combs.append(cardNumsSorted)
+        elif (is_flush(cardTypes)):
+            flush_combs.append(cardNumsSorted)
+        elif (is_straight(cardNumsSorted)):
+            straight_combs.append(cardNumsSorted)
+        elif (maxCount == 3):
+            three_of_combs.append(cardNumsSorted)
+        elif (maxCount == 2 and numPairs == 2):
+            two_pair_combs.append(cardNumsSorted)
+        elif (maxCount == 2):
+            pair_combs.append(cardNumsSorted)
+        else:
+            high_card_combs.append(cardNumsSorted)
             
+def categorize_all_cards_without_hands(allCombs, handCards):
+    for comb in tqdm(allCombs):
+        dup = False
+        for card in handCards:
+            if card in comb:
+                dup = True
+                break
+        if dup:
+            continue
+        cardNums = []
+        cardTypes = []
+        
+        for card in comb:
+            cardNums.append(card[1])
+            cardTypes.append(card[0])
+        cardNumsSorted = cardNums[:]
+        cardNumsSorted.sort()
+        
+        maxCount, numPairs = check_count(cardNums=cardNums)
+        if (is_royal_flush(cardNumsSorted, cardTypes)):
+            all_royal_flush_combs.append(cardNumsSorted)
+        elif (is_straight_flush(cardNumsSorted, cardTypes)):
+            all_straight_flush_combs.append(cardNumsSorted)
+        elif (maxCount == 4):
+            all_four_of_kind_combs.append(cardNumsSorted)
+        elif (maxCount == 3 and numPairs == 2):
+            all_full_house_combs.append(cardNumsSorted)
+        elif (is_flush(cardTypes)):
+            all_flush_combs.append(cardNumsSorted)
+        elif (is_straight(cardNumsSorted)):
+            all_straight_combs.append(cardNumsSorted)
+        elif (maxCount == 3):
+            all_three_of_combs.append(cardNumsSorted)
+        elif (maxCount == 2 and numPairs == 2):
+            all_two_pair_combs.append(cardNumsSorted)
+        elif (maxCount == 2):
+            all_pair_combs.append(cardNumsSorted)
+        else:
+            all_high_card_combs.append(cardNumsSorted)
+        
+        
+    
+            
+def calculate_prob_cur_comb(cardNums, totalNum, royalFlushNum, straightFlushNum, fourOfKindNum, fullHouseNum,
+                   flushNum, straightNum, threeKindNum, twoPairNum, pairNum, highNum, cardType):
+    cardCountDict = {}
+    cardValDict = {}
+    for cardNum in cardNums:
+        if cardNum in cardCountDict:
+            cardCountDict[cardNum] += 1
+        else:
+            cardCountDict[cardNum] = 1
+    
+    for key in cardCountDict.keys():
+        if cardCountDict[key] in cardValDict:
+            cardValDict[cardCountDict[key]].append(key)
+        else:
+            cardValDict[cardCountDict[key]] = [key]
+            
+    for key in cardValDict:
+        cardValDict[key].sort()
+        cardValDict[key] = tuple(cardValDict[::-1])
+        
+        
+        
+    if (cardType == "royal"):
+        return 1
+    elif cardType == "straight flush":
+        numLarger = (14 - cardValDict[1][0]) * 4
+        return (totalNum - numLarger) / totalNum
+    elif cardType == "four kind":
+        numLarger = royalFlushNum + straightFlushNum
+        curCardNumFour = cardValDict[4][0]
+        curCardNumOne = cardValDict[1][0]
+        
+        a = 0
+        
+        if curCardNumOne > curCardNumFour:
+            a = (14 - curCardNumFour - 1) * (13 - 2) * 4 + (14 - curCardNumOne)
+        else:
+            a = (14 - curCardNumFour) * (13 - 2) * 4 + (14 - curCardNumOne)
+        
+        numLarger += a
+        return (totalNum - numLarger) / totalNum
+        
+        
+    elif cardType == "full":
+        numLarger = royalFlushNum + straightFlushNum + fourOfKindNum
+        
+        curCardNumThree = cardValDict[3][0]
+        curCardNumTwo = cardValDict[2][0]
+        
+        a = 0
+        if curCardNumTwo > curCardNumThree:
+            a = (14 - curCardNumThree - 1) * math.comb(4, 3) * math.comb(4, 2) * (13 - 2) + (14 - curCardNumOne) * math.comb(4, 2)
+        else:
+            a = (14 - curCardNumThree) * math.comb(4, 3) * math.comb(4, 2) * (13 - 2) + (14 - curCardNumOne) * math.comb(4, 2)
+        
+        numLarger += a
+        
+        return (totalNum - numLarger) / totalNum
+    
+    elif cardType == "flush":
+         numLarger = royalFlushNum + straightFlushNum + fourOfKindNum + fullHouseNum
+         a = 0
+         # this has error but should be close
+         for idx, num in enumerate(cardValDict[1]):
+            a += 4 * (14 - num) * math.comb(13 - 1, (5 - idx - 1)) / 2
+         numLarger += a
+        
+         return (totalNum - numLarger) / totalNum
+        
+    
+    elif cardType == "straight":
+        # max is the A and the worst is 5,
+        numLarger =  royalFlushNum + straightFlushNum + fourOfKindNum + fullHouseNum + flushNum
+        curMax = cardValDict[1][0]
+        
+        a = (14 - curMax) * 4 ** 4 * 4
+        numLarger += a
+        
+        return (totalNum - numLarger) / totalNum
+        
+    elif cardType == "three":
+        
+        numLarger = royalFlushNum + straightFlushNum + fourOfKindNum + fullHouseNum + flushNum + straightNum
+        
+        curThreeMax = cardValDict[3][0]
+        
+        a = (14 - curThreeMax) * math.comb(4, 3) * math.comb(49, 2)
+                
+        for idx, curNum in enumerate(cardValDict[1][0]):
+            a += (14 - curNum) * 48 ** (2 - idx - 1)
+        
+        numLarger += a
+        return (totalNum - numLarger) / totalNum
+            
+    elif cardType == "two pair":
+        
+        numLarger = royalFlushNum + straightFlushNum + fourOfKindNum + fullHouseNum + flushNum + straightNum + threeKindNum
+        
+        a = 0
+        
+        for i in range(14 - cardValDict[2][0]):
+            curVal = 
+    
+        
+        # 第2对不能比第一对大
+        a += (14 - cardNum[2][0]) * math.comb(4, 2)
+        
+        return (totalNum - numLarger) / totalNum
+    
+    elif cardType == "pair":
+        numLarger = royalFlushNum + straightFlushNum + fourOfKindNum + fullHouseNum + flushNum + straightNum + threeKindNum + twoPairNum
+        
+        a = (14 - cardValDict[2][0]) * math.comb(4, 2) * math.comb(12, 3) * 4
+        
+        for i in range(14 - cardValDict[1][0]):
+            curVal = 14 - i
+            a += 4 * math.comb(curVal - 3, 2) * 4**2
+            
+        for i in range(14 - cardValDict[1][1]):
+            curVal = 14 - i
+            a += 4 * math.comb(curVal - 4, 1) * 4
+            
+        for i in range(14 - cardValDict[1][2]):
+            curVal = 14 - i
+            a += 4
+        
+        # a += (14 - cardValDict[1][0]) * 4 * math.comb(11, 2) * 4**2
+        
+        # a += (14 - cardValDict[1][1]) * 4 * 10 * 4
+        
+        # a += (14 - cardValDict[1][2]) * 4
+        
+        numLarger += a
+        
+        return (totalNum - numLarger) / totalNum
+    
+    elif cardType == "high":
+        numLarger = royalFlushNum + straightFlushNum + fourOfKindNum + fullHouseNum + flushNum + straightNum + threeKindNum + twoPairNum + pairNum
+        a = 0
+        
+        for i in range(14 - cardValDict[1][0]):
+            curVal = 14 - i
+            a += 4 ** 4 * math.comb(curVal - 2, 4)
+        
+        for i in range(14 - cardValDict[1][1]):
+            curVal = 14 - i
+            a += 4 ** 3 * math.comb(curVal - 3, 3)
+            
+        for i in range(14 - cardValDict[1][2]):
+            curVal = 14 - i
+            a += 4 ** 2 * math.comb(curVal - 4, 2)
+            
+        for i in range(14 - cardValDict[1][3]):
+            curVal = 14 - i
+            a += 4 ** 1 * math.comb(curVal - 5, 1)
+            
+        a += 14 - cardValDict[1][4]
+        
+        numLarger += a
+        
+        # a += (14 - cardValDict[1][0]) * math.comb(12, 4) * 4 ** 4
+        
+        # a += (14 - cardValDict[1][1]) * math.comb(11, 3) * 4 ** 3
+        
+        # a += (14 - cardValDict[1][2]) * math.comb(10, 2) * 4 ** 2
+        
+        # a += (14 - cardValDict[1][3]) * math.comb(9, 1) * 4 ** 1
+        
+        # a += 14 - cardValDict[1][4]
+        
+        return (totalNum - numLarger) / totalNum
+    
+
+               
+        
+        
+          
+             
+         
+
 
 if __name__ == "__main__":
     all_cards = calculate_prob([("h", 13), ("s", 13)])
     print(all_cards)
     retvals = find_comb(allCards=all_cards)
+    
+    allCombs = find_comb_no_handcard(allCards=all_cards)
+    
+    categorized_comb(retvals)
+    categorize_all_cards_without_hands(allCombs, retvals[0])
     
     
     # given the comb, find how many of total possible combine is better, hiw many worth, then check average
