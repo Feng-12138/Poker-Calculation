@@ -661,6 +661,7 @@ def with_desk_card_wrapper(allCards, handCards, deskCards, players_remain):
     with Pool(num_processes) as pool:
         win_percentages = list(tqdm(pool.imap(calculate_win_percentage, args_list), total=len(bestCombs)))
         total_percentage += sum(win_percentage ** (players_remain - 1) for win_percentage in win_percentages)
+    return total_percentage / len(bestCombs)
     
 def calculate_win_percentage(args):
     comb, deskCardCombs = args
@@ -690,7 +691,7 @@ def calculate_win_percentage(args):
     
 
 if __name__ == "__main__":
-    deskCards = [("h", 8), ("s", 8), ("c", 8)]
+    deskCards = [("h", 8), ("s", 3), ("c", 8)]
     hand_cards = [("h", 13), ("s", 13)]
     
     # deskCardsList = [[("h", 4), ("s", 7), ("c", 13)], [("h", 4), ("s", 7), ("c", 13), ("s", 10)], [("h", 4), ("s", 7), ("c", 13), ("s", 10), ("s", 4)]]
@@ -698,6 +699,7 @@ if __name__ == "__main__":
     
     # for i, deskCards in enumerate(deskCardsList):
     #     for hand_cards in hand_cardsList:
+    #         all_cards = calculate_prob([hand_cards])
     #         result = multiProcess_wrapper(all_cards, hand_cards, deskCards, min(2, 3 - i))
     #         print(result, deskCards, hand_cards)
     
@@ -705,7 +707,7 @@ if __name__ == "__main__":
     
     # This is for having river cards, and not done testing yet
     
-    result = with_desk_card_wrapper(all_cards, hand_cards, deskCards)
+    result = with_desk_card_wrapper(all_cards, hand_cards, deskCards, 5)
     print(result)
     
     # This is when there is no river card
