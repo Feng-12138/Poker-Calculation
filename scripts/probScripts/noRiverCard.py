@@ -57,14 +57,9 @@ all_high_card_combs = []
 
 
 def calculate_prob(cards: list[tuple[str, int]]):
-    total_combintion = (52 * 51 * 50 * 49 * 48) / (5 * 4 * 3 * 2 * 1)
     # 2 numbers are different
     # each combination has the same probability
     # And thw winning percentage could be seen as the average percentage of those
-    
-    # if two cards same number
-    if cards[0][1] == cards[1][1]:
-        pass
     
     all_cards = []
     
@@ -367,8 +362,7 @@ def find_best_combs(comb: list, handCards: list):
 def find_comb(allCards, handCards = []):
     retval = []
     all_combinations = list(combinations(allCards, 5))
-    for idx, comb in enumerate(all_combinations):
-        print(idx)
+    for idx, comb in tqdm(enumerate(all_combinations)):
         curComb = find_best_combs(list(comb), handCards)
         retval.append(curComb)
     return retval
@@ -395,7 +389,7 @@ def categorized_comb(allCombs):
             straight_flush_combs.append(cardNumsSorted)
         elif (maxCount == 4):
             four_of_kind_combs.append(cardNumsSorted)
-        elif (maxCount == 3 and numPairs == 2):
+        elif (maxCount == 3 and numPairs == 1):
             full_house_combs.append(cardNumsSorted)
         elif (is_flush(cardTypes)):
             flush_combs.append(cardNumsSorted)
@@ -435,7 +429,7 @@ def categorize_all_cards_without_hands(allCombs, handCards):
             all_straight_flush_combs.append(cardNumsSorted)
         elif (maxCount == 4):
             all_four_of_kind_combs.append(cardNumsSorted)
-        elif (maxCount == 3 and numPairs == 2):
+        elif (maxCount == 3 and numPairs == 1):
             all_full_house_combs.append(cardNumsSorted)
         elif (is_flush(cardTypes)):
             all_flush_combs.append(cardNumsSorted)
@@ -454,7 +448,7 @@ def categorize_all_cards_without_hands(allCombs, handCards):
     
             
 def calculate_prob_cur_comb(cardNums, totalNum, royalFlushNum, straightFlushNum, fourOfKindNum, fullHouseNum,
-                   flushNum, straightNum, threeKindNum, twoPairNum, pairNum, highNum, cardType):
+                   flushNum, straightNum, threeKindNum, twoPairNum, pairNum, cardType):
     cardCountDict = {}
     cardValDict = {}
     for cardNum in cardNums:
@@ -471,10 +465,9 @@ def calculate_prob_cur_comb(cardNums, totalNum, royalFlushNum, straightFlushNum,
             
     for key in cardValDict:
         cardValDict[key].sort()
-        cardValDict[key] = tuple(cardValDict[::-1])
+        cardValDict[key] = tuple(cardValDict[key][::-1])
         
-        
-        
+    
     if (cardType == "royal"):
         return 1
     elif cardType == "straight flush":
@@ -504,9 +497,9 @@ def calculate_prob_cur_comb(cardNums, totalNum, royalFlushNum, straightFlushNum,
         
         a = 0
         if curCardNumTwo > curCardNumThree:
-            a = (14 - curCardNumThree - 1) * math.comb(4, 3) * math.comb(4, 2) * (13 - 2) + (14 - curCardNumOne) * math.comb(4, 2)
+            a = (14 - curCardNumThree - 1) * math.comb(4, 3) * math.comb(4, 2) * (13 - 2) + (14 - curCardNumTwo) * math.comb(4, 2)
         else:
-            a = (14 - curCardNumThree) * math.comb(4, 3) * math.comb(4, 2) * (13 - 2) + (14 - curCardNumOne) * math.comb(4, 2)
+            a = (14 - curCardNumThree) * math.comb(4, 3) * math.comb(4, 2) * (13 - 2) + (14 - curCardNumTwo) * math.comb(4, 2)
         
         numLarger += a
         
@@ -534,14 +527,13 @@ def calculate_prob_cur_comb(cardNums, totalNum, royalFlushNum, straightFlushNum,
         return (totalNum - numLarger) / totalNum
         
     elif cardType == "three":
-        
         numLarger = royalFlushNum + straightFlushNum + fourOfKindNum + fullHouseNum + flushNum + straightNum
         
         curThreeMax = cardValDict[3][0]
         
         a = (14 - curThreeMax) * math.comb(4, 3) * math.comb(49, 2)
                 
-        for idx, curNum in enumerate(cardValDict[1][0]):
+        for idx, curNum in enumerate(cardValDict[1]):
             a += (14 - curNum) * 48 ** (2 - idx - 1)
         
         numLarger += a
@@ -554,11 +546,14 @@ def calculate_prob_cur_comb(cardNums, totalNum, royalFlushNum, straightFlushNum,
         a = 0
         
         for i in range(14 - cardValDict[2][0]):
-            curVal = 
-    
-        
-        # 第2对不能比第一对大
-        a += (14 - cardNum[2][0]) * math.comb(4, 2)
+            curVal = 14 - i
+            a += math.comb(curVal - 1, 1) * 6 * 12 * math.comb(4, 1)
+            
+        for i in range(14 - cardValDict[2][1]):
+             curVal = 14 - i
+             a += 12 * math.comb(4, 1)
+             
+        numLarger += a
         
         return (totalNum - numLarger) / totalNum
     
@@ -567,9 +562,10 @@ def calculate_prob_cur_comb(cardNums, totalNum, royalFlushNum, straightFlushNum,
         
         a = (14 - cardValDict[2][0]) * math.comb(4, 2) * math.comb(12, 3) * 4
         
+        # 这边得
         for i in range(14 - cardValDict[1][0]):
             curVal = 14 - i
-            a += 4 * math.comb(curVal - 3, 2) * 4**2
+            a += 4 * math.comb(curVal - 4, 2) * 4**2
             
         for i in range(14 - cardValDict[1][1]):
             curVal = 14 - i
@@ -595,7 +591,7 @@ def calculate_prob_cur_comb(cardNums, totalNum, royalFlushNum, straightFlushNum,
         
         for i in range(14 - cardValDict[1][0]):
             curVal = 14 - i
-            a += 4 ** 4 * math.comb(curVal - 2, 4)
+            a += 4 ** 4 * math.comb(curVal - 3, 4)
         
         for i in range(14 - cardValDict[1][1]):
             curVal = 14 - i
@@ -603,11 +599,11 @@ def calculate_prob_cur_comb(cardNums, totalNum, royalFlushNum, straightFlushNum,
             
         for i in range(14 - cardValDict[1][2]):
             curVal = 14 - i
-            a += 4 ** 2 * math.comb(curVal - 4, 2)
+            a += 4 ** 2 * math.comb(curVal - 3, 2)
             
         for i in range(14 - cardValDict[1][3]):
             curVal = 14 - i
-            a += 4 ** 1 * math.comb(curVal - 5, 1)
+            a += 4 ** 1 * math.comb(curVal - 3, 1)
             
         a += 14 - cardValDict[1][4]
         
@@ -624,25 +620,99 @@ def calculate_prob_cur_comb(cardNums, totalNum, royalFlushNum, straightFlushNum,
         # a += 14 - cardValDict[1][4]
         
         return (totalNum - numLarger) / totalNum
-    
-
-               
-        
-        
-          
-             
          
 
 
 if __name__ == "__main__":
     all_cards = calculate_prob([("h", 13), ("s", 13)])
-    print(all_cards)
+    
+    # 能拿到的最好的牌（7张牌组成5张）
     retvals = find_comb(allCards=all_cards)
     
+    # 不包括hand card
     allCombs = find_comb_no_handcard(allCards=all_cards)
     
     categorized_comb(retvals)
-    categorize_all_cards_without_hands(allCombs, retvals[0])
+    
+    categorize_all_cards_without_hands(allCombs, [("h", 13), ("s", 13)])
+    
+    totalNum = len(all_royal_flush_combs) + len(all_straight_flush_combs) + len(all_four_of_kind_combs) + len(all_full_house_combs) + \
+        len(all_flush_combs) + len(all_straight_combs) + len(all_three_of_combs) + len(all_two_pair_combs) + len(all_pair_combs) + \
+        len(all_high_card_combs)
+        
+    total_sum = 0
+    
+    # for retval in tqdm(retvals):
+    #     sortedNum = []
+    #     cardType = []
+    #     for card in retval:
+    #         sortedNum.append(card[1])
+    #         cardType.append(card[0])
+        
+    #     sortedNum.sort()
+    
+    for comb in royal_flush_combs:
+        
+        result = calculate_prob_cur_comb(comb, len(all_royal_flush_combs), len(all_straight_flush_combs), len(all_four_of_kind_combs), len(all_full_house_combs),
+                                         len(all_flush_combs), len(all_straight_combs), len(all_three_of_combs), len(all_two_pair_combs), len(all_pair_combs), len(all_high_card_combs), "royal")
+        
+        total_sum += result ** 4
+        
+    for comb in straight_flush_combs:
+        result = calculate_prob_cur_comb(comb, len(all_royal_flush_combs), len(all_straight_flush_combs), len(all_four_of_kind_combs), len(all_full_house_combs),
+                                         len(all_flush_combs), len(all_straight_combs), len(all_three_of_combs), len(all_two_pair_combs), len(all_pair_combs), len(all_high_card_combs), "straight flush")
+        
+        total_sum += result ** 4
+        
+    for comb in four_of_kind_combs:
+        result = calculate_prob_cur_comb(comb, len(all_royal_flush_combs), len(all_straight_flush_combs), len(all_four_of_kind_combs), len(all_full_house_combs),
+                                         len(all_flush_combs), len(all_straight_combs), len(all_three_of_combs), len(all_two_pair_combs), len(all_pair_combs), len(all_high_card_combs), "four kind")
+        
+        total_sum += result ** 4
+
+    for comb in full_house_combs:
+        result = calculate_prob_cur_comb(comb, len(all_royal_flush_combs), len(all_straight_flush_combs), len(all_four_of_kind_combs), len(all_full_house_combs),
+                                         len(all_flush_combs), len(all_straight_combs), len(all_three_of_combs), len(all_two_pair_combs), len(all_pair_combs), len(all_high_card_combs), "full")
+        total_sum += result ** 4
+        
+    for comb in flush_combs:
+        result = calculate_prob_cur_comb(comb, len(all_royal_flush_combs), len(all_straight_flush_combs), len(all_four_of_kind_combs), len(all_full_house_combs),
+                                         len(all_flush_combs), len(all_straight_combs), len(all_three_of_combs), len(all_two_pair_combs), len(all_pair_combs), len(all_high_card_combs), "flush")
+        
+        total_sum += result ** 4
+        
+    for comb in straight_combs:
+        result = calculate_prob_cur_comb(comb, len(all_royal_flush_combs), len(all_straight_flush_combs), len(all_four_of_kind_combs), len(all_full_house_combs),
+                                         len(all_flush_combs), len(all_straight_combs), len(all_three_of_combs), len(all_two_pair_combs), len(all_pair_combs), len(all_high_card_combs), "straight")
+        total_sum += result ** 4
+        
+    for comb in three_of_combs:
+        result = calculate_prob_cur_comb(comb, len(all_royal_flush_combs), len(all_straight_flush_combs), len(all_four_of_kind_combs), len(all_full_house_combs),
+                                         len(all_flush_combs), len(all_straight_combs), len(all_three_of_combs), len(all_two_pair_combs), len(all_pair_combs), len(all_high_card_combs), "three")
+        total_sum += result ** 4
+        
+    for comb in two_pair_combs:
+        result = calculate_prob_cur_comb(comb, len(all_royal_flush_combs), len(all_straight_flush_combs), len(all_four_of_kind_combs), len(all_full_house_combs),
+                                         len(all_flush_combs), len(all_straight_combs), len(all_three_of_combs), len(all_two_pair_combs), len(all_pair_combs), len(all_high_card_combs), "two pair")
+        total_sum += result ** 4
+        
+    for comb in pair_combs:
+        result = calculate_prob_cur_comb(comb, len(all_royal_flush_combs), len(all_straight_flush_combs), len(all_four_of_kind_combs), len(all_full_house_combs),
+                                         len(all_flush_combs), len(all_straight_combs), len(all_three_of_combs), len(all_two_pair_combs), len(all_pair_combs), len(all_high_card_combs), "pair")
+        
+        total_sum += result ** 4
+        
+    for comb in high_card_combs:
+        result = calculate_prob_cur_comb(comb, len(all_royal_flush_combs), len(all_straight_flush_combs), len(all_four_of_kind_combs), len(all_full_house_combs),
+                                         len(all_flush_combs), len(all_straight_combs), len(all_three_of_combs), len(all_two_pair_combs), len(all_pair_combs), len(all_high_card_combs), "high")
+        print(result)
+        total_sum += result ** 4
+        
+    print(total_sum)
+        
+    print(total_sum / totalNum)
+    
+    
     
     
     # given the comb, find how many of total possible combine is better, hiw many worth, then check average
