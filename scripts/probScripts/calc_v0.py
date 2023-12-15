@@ -688,7 +688,7 @@ def calculate_win_percentage(args):
 #         total_percentage += winPercentage ** 4
 #     return total_percentage / len(deskCardCombs)
         
-    
+
 
 if __name__ == "__main__":
     deskCards = [("h", 8), ("s", 3), ("c", 8)]
