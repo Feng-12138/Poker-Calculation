@@ -4,6 +4,8 @@ from itertools import combinations
 
 from tqdm import tqdm
 
+from multiprocessing import Pool
+
 # h stands for heart
 # d stands for diamend
 # c stands for club
@@ -359,13 +361,47 @@ def find_best_combs(comb: list, handCards: list):
         found = True
     
     
-def find_comb(allCards, handCards = []):
+def find_best_comb_helper(allCombs: list, handCards: list):
     retval = []
-    all_combinations = list(combinations(allCards, 5))
-    for idx, comb in tqdm(enumerate(all_combinations)):
+    for comb in tqdm(allCombs):
         curComb = find_best_combs(list(comb), handCards)
         retval.append(curComb)
     return retval
+
+def find_comb_worker(args):
+    comb, handCards = args
+    return find_best_combs(list(comb), handCards)
+
+def find_comb(allCards, handCards=[], num_processes=25):
+    all_combinations = list(combinations(allCards, 5))
+    args_list = [(comb, handCards) for comb in all_combinations]
+    
+    with Pool(num_processes) as pool:
+        retval = list(tqdm(pool.imap(find_comb_worker, args_list), total=len(all_combinations)))
+
+    return retval
+    
+# def find_comb(allCards, handCards = []):
+#     all_combinations = list(combinations(allCards, 5))
+#     retval = []
+#     for comb in tqdm(all_combinations):
+#         curComb = find_best_combs(list(comb), handCards)
+#         retval.append(curComb)
+#     return retval
+
+def find_all_comb_include_deskcard(allCards, deskcard = []):
+    all_combinations = list(combinations(allCards, 5))
+    
+    retval = []
+    for comb in tqdm(all_combinations):
+        add = True
+        for card in deskcard:
+            if card not in comb:
+                add = False
+        if add:
+            retval.append(comb)
+    return retval
+        
 
 def find_comb_no_handcard(allCards):
     all_combinations = list(combinations(allCards, 5))
@@ -445,7 +481,8 @@ def categorize_all_cards_without_hands(allCombs, handCards):
             all_high_card_combs.append(cardNumsSorted)
         
         
-    
+
+# This func
             
 def calculate_prob_cur_comb(cardNums, totalNum, royalFlushNum, straightFlushNum, fourOfKindNum, fullHouseNum,
                    flushNum, straightNum, threeKindNum, twoPairNum, pairNum, cardType):
@@ -613,87 +650,144 @@ def calculate_prob_cur_comb(cardNums, totalNum, royalFlushNum, straightFlushNum,
         
         return (totalNum - numLarger) / totalNum
          
+# All cards
+
+def with_desk_card_wrapper(allCards, handCards, deskCards, players_remain):
+    total_percentage = 0
+    deskCardCombs = find_all_comb_include_deskcard(allCards, deskCards)
+    bestCombs = find_comb(allCards, handCards)
+    num_processes = 25
+    args_list = [(comb, deskCardCombs) for comb in bestCombs]
+    with Pool(num_processes) as pool:
+        win_percentages = list(tqdm(pool.imap(calculate_win_percentage, args_list), total=len(bestCombs)))
+        total_percentage += sum(win_percentage ** (players_remain - 1) for win_percentage in win_percentages)
+    return total_percentage / len(bestCombs)
+    
+def calculate_win_percentage(args):
+    comb, deskCardCombs = args
+    count_lose = 0
+    for comb_other in deskCardCombs:
+        result = compare_comb(comb, comb_other)
+        if result == "two":
+            count_lose += 1
+    return (len(deskCardCombs) - count_lose) / len(deskCardCombs)
+    
+    
+# def cal_desk_cards(allCards: list, handCards: list, deskCards: list):
+#     deskCardCombs = find_all_comb_include_deskcard(allCards, deskCards)
+#     bestCombs = find_comb(allCards, handCards)
+    
+#     total_percentage = 0
+#     for comb in tqdm(bestCombs):
+#         countLose = 0
+#         for combOther in deskCardCombs:
+#             result = compare_comb(comb, combOther)
+#             if result == "two":
+#                 countLose += 1
+#         winPercentage = (len(deskCardCombs) - countLose) / len(deskCardCombs)
+#         total_percentage += winPercentage ** 4
+#     return total_percentage / len(deskCardCombs)
+        
 
 
 if __name__ == "__main__":
-    all_cards = calculate_prob([("h", 6), ("s", 13)])
+    deskCards = [("h", 8), ("s", 3), ("c", 8)]
+    hand_cards = [("h", 13), ("s", 13)]
     
-    # 能拿到的最好的牌（7张牌组成5张）
-    retvals = find_comb(allCards=all_cards)
+    # deskCardsList = [[("h", 4), ("s", 7), ("c", 13)], [("h", 4), ("s", 7), ("c", 13), ("s", 10)], [("h", 4), ("s", 7), ("c", 13), ("s", 10), ("s", 4)]]
+    # hand_cardsList = [[("h", 13), ("c", 7)], [("s", 2), ("s", 8)], [("d", 14), ("d", 12)]]
     
-    # 不包括hand card
-    allCombs = find_comb_no_handcard(allCards=all_cards)
+    # for i, deskCards in enumerate(deskCardsList):
+    #     for hand_cards in hand_cardsList:
+    #         all_cards = calculate_prob([hand_cards])
+    #         result = multiProcess_wrapper(all_cards, hand_cards, deskCards, min(2, 3 - i))
+    #         print(result, deskCards, hand_cards)
     
-    categorized_comb(retvals)
+    all_cards = calculate_prob([hand_cards])
     
-    categorize_all_cards_without_hands(allCombs, [("h", 6), ("s", 13)])
+    # This is for having river cards, and not done testing yet
     
-    totalNum = len(all_royal_flush_combs) + len(all_straight_flush_combs) + len(all_four_of_kind_combs) + len(all_full_house_combs) + \
-        len(all_flush_combs) + len(all_straight_combs) + len(all_three_of_combs) + len(all_two_pair_combs) + len(all_pair_combs) + \
-        len(all_high_card_combs)
-        
-    total_sum = 0
+    result = with_desk_card_wrapper(all_cards, hand_cards, deskCards, 5)
+    print(result)
     
-    for comb in royal_flush_combs:
+    # This is when there is no river card
+    
+    # # 能拿到的最好的牌（7张牌组成5张）
+    # retvals = find_comb(allCards=all_cards, handCards=hand_cards)
+    
+    # # 不包括hand card
+    # allCombs = find_comb_no_handcard(allCards=all_cards)
+    
+    # categorized_comb(retvals)
+    
+    # categorize_all_cards_without_hands(allCombs, hand_cards)
+    
+    # totalNum = len(all_royal_flush_combs) + len(all_straight_flush_combs) + len(all_four_of_kind_combs) + len(all_full_house_combs) + \
+    #     len(all_flush_combs) + len(all_straight_combs) + len(all_three_of_combs) + len(all_two_pair_combs) + len(all_pair_combs) + \
+    #     len(all_high_card_combs)
         
-        result = calculate_prob_cur_comb(comb, totalNum, len(all_royal_flush_combs), len(all_straight_flush_combs), len(all_four_of_kind_combs), len(all_full_house_combs),
-                                         len(all_flush_combs), len(all_straight_combs), len(all_three_of_combs), len(all_two_pair_combs), len(all_pair_combs), "royal")
+    # total_sum = 0
+    
+    # for comb in royal_flush_combs:
         
-        total_sum += result ** 4
+    #     result = calculate_prob_cur_comb(comb, totalNum, len(all_royal_flush_combs), len(all_straight_flush_combs), len(all_four_of_kind_combs), len(all_full_house_combs),
+    #                                      len(all_flush_combs), len(all_straight_combs), len(all_three_of_combs), len(all_two_pair_combs), len(all_pair_combs), "royal")
         
-    for comb in straight_flush_combs:
-        result = calculate_prob_cur_comb(comb, totalNum, len(all_royal_flush_combs), len(all_straight_flush_combs), len(all_four_of_kind_combs), len(all_full_house_combs),
-                                         len(all_flush_combs), len(all_straight_combs), len(all_three_of_combs), len(all_two_pair_combs), len(all_pair_combs), "straight flush")
+    #     total_sum += result ** 4
         
-        total_sum += result ** 4
+    # for comb in straight_flush_combs:
+    #     result = calculate_prob_cur_comb(comb, totalNum, len(all_royal_flush_combs), len(all_straight_flush_combs), len(all_four_of_kind_combs), len(all_full_house_combs),
+    #                                      len(all_flush_combs), len(all_straight_combs), len(all_three_of_combs), len(all_two_pair_combs), len(all_pair_combs), "straight flush")
         
-    for comb in four_of_kind_combs:
-        result = calculate_prob_cur_comb(comb,totalNum, len(all_royal_flush_combs), len(all_straight_flush_combs), len(all_four_of_kind_combs), len(all_full_house_combs),
-                                         len(all_flush_combs), len(all_straight_combs), len(all_three_of_combs), len(all_two_pair_combs), len(all_pair_combs), "four kind")
+    #     total_sum += result ** 4
         
-        total_sum += result ** 4
+    # for comb in four_of_kind_combs:
+    #     result = calculate_prob_cur_comb(comb,totalNum, len(all_royal_flush_combs), len(all_straight_flush_combs), len(all_four_of_kind_combs), len(all_full_house_combs),
+    #                                      len(all_flush_combs), len(all_straight_combs), len(all_three_of_combs), len(all_two_pair_combs), len(all_pair_combs), "four kind")
+        
+    #     total_sum += result ** 4
 
-    for comb in full_house_combs:
-        result = calculate_prob_cur_comb(comb, totalNum, len(all_royal_flush_combs), len(all_straight_flush_combs), len(all_four_of_kind_combs), len(all_full_house_combs),
-                                         len(all_flush_combs), len(all_straight_combs), len(all_three_of_combs), len(all_two_pair_combs), len(all_pair_combs), "full")
-        total_sum += result ** 4
+    # for comb in full_house_combs:
+    #     result = calculate_prob_cur_comb(comb, totalNum, len(all_royal_flush_combs), len(all_straight_flush_combs), len(all_four_of_kind_combs), len(all_full_house_combs),
+    #                                      len(all_flush_combs), len(all_straight_combs), len(all_three_of_combs), len(all_two_pair_combs), len(all_pair_combs), "full")
+    #     total_sum += result ** 4
         
-    for comb in flush_combs:
-        result = calculate_prob_cur_comb(comb, totalNum, len(all_royal_flush_combs), len(all_straight_flush_combs), len(all_four_of_kind_combs), len(all_full_house_combs),
-                                         len(all_flush_combs), len(all_straight_combs), len(all_three_of_combs), len(all_two_pair_combs), len(all_pair_combs), "flush")
+    # for comb in flush_combs:
+    #     result = calculate_prob_cur_comb(comb, totalNum, len(all_royal_flush_combs), len(all_straight_flush_combs), len(all_four_of_kind_combs), len(all_full_house_combs),
+    #                                      len(all_flush_combs), len(all_straight_combs), len(all_three_of_combs), len(all_two_pair_combs), len(all_pair_combs), "flush")
         
-        total_sum += result ** 4
+    #     total_sum += result ** 4
         
-    for comb in straight_combs:
-        result = calculate_prob_cur_comb(comb, totalNum, len(all_royal_flush_combs), len(all_straight_flush_combs), len(all_four_of_kind_combs), len(all_full_house_combs),
-                                         len(all_flush_combs), len(all_straight_combs), len(all_three_of_combs), len(all_two_pair_combs), len(all_pair_combs), "straight")
-        total_sum += result ** 4
+    # for comb in straight_combs:
+    #     result = calculate_prob_cur_comb(comb, totalNum, len(all_royal_flush_combs), len(all_straight_flush_combs), len(all_four_of_kind_combs), len(all_full_house_combs),
+    #                                      len(all_flush_combs), len(all_straight_combs), len(all_three_of_combs), len(all_two_pair_combs), len(all_pair_combs), "straight")
+    #     total_sum += result ** 4
         
-    for comb in three_of_combs:
-        result = calculate_prob_cur_comb(comb, totalNum,  len(all_royal_flush_combs), len(all_straight_flush_combs), len(all_four_of_kind_combs), len(all_full_house_combs),
-                                         len(all_flush_combs), len(all_straight_combs), len(all_three_of_combs), len(all_two_pair_combs), len(all_pair_combs), "three")
-        total_sum += result ** 4
+    # for comb in three_of_combs:
+    #     result = calculate_prob_cur_comb(comb, totalNum,  len(all_royal_flush_combs), len(all_straight_flush_combs), len(all_four_of_kind_combs), len(all_full_house_combs),
+    #                                      len(all_flush_combs), len(all_straight_combs), len(all_three_of_combs), len(all_two_pair_combs), len(all_pair_combs), "three")
+    #     total_sum += result ** 4
         
-    for comb in two_pair_combs:
-        result = calculate_prob_cur_comb(comb, totalNum, len(all_royal_flush_combs), len(all_straight_flush_combs), len(all_four_of_kind_combs), len(all_full_house_combs),
-                                         len(all_flush_combs), len(all_straight_combs), len(all_three_of_combs), len(all_two_pair_combs), len(all_pair_combs), "two pair")
-        total_sum += result ** 4
+    # for comb in two_pair_combs:
+    #     result = calculate_prob_cur_comb(comb, totalNum, len(all_royal_flush_combs), len(all_straight_flush_combs), len(all_four_of_kind_combs), len(all_full_house_combs),
+    #                                      len(all_flush_combs), len(all_straight_combs), len(all_three_of_combs), len(all_two_pair_combs), len(all_pair_combs), "two pair")
+    #     total_sum += result ** 4
         
-    for comb in pair_combs:
-        result = calculate_prob_cur_comb(comb, totalNum, len(all_royal_flush_combs), len(all_straight_flush_combs), len(all_four_of_kind_combs), len(all_full_house_combs),
-                                         len(all_flush_combs), len(all_straight_combs), len(all_three_of_combs), len(all_two_pair_combs), len(all_pair_combs), "pair")
+    # for comb in pair_combs:
+    #     result = calculate_prob_cur_comb(comb, totalNum, len(all_royal_flush_combs), len(all_straight_flush_combs), len(all_four_of_kind_combs), len(all_full_house_combs),
+    #                                      len(all_flush_combs), len(all_straight_combs), len(all_three_of_combs), len(all_two_pair_combs), len(all_pair_combs), "pair")
         
-        total_sum += result ** 4
+    #     total_sum += result ** 4
         
-    for comb in high_card_combs:
-        result = calculate_prob_cur_comb(comb, totalNum, len(all_royal_flush_combs), len(all_straight_flush_combs), len(all_four_of_kind_combs), len(all_full_house_combs),
-                                         len(all_flush_combs), len(all_straight_combs), len(all_three_of_combs), len(all_two_pair_combs), len(all_pair_combs), "high")
-        # print(result)
-        total_sum += result ** 4
+    # for comb in high_card_combs:
+    #     result = calculate_prob_cur_comb(comb, totalNum, len(all_royal_flush_combs), len(all_straight_flush_combs), len(all_four_of_kind_combs), len(all_full_house_combs),
+    #                                      len(all_flush_combs), len(all_straight_combs), len(all_three_of_combs), len(all_two_pair_combs), len(all_pair_combs), "high")
+    #     # print(result)
+    #     total_sum += result ** 4
         
-    print(total_sum)
+    # print(total_sum)
         
-    print(total_sum / totalNum)
+    # print(total_sum / totalNum)
     
     
     
